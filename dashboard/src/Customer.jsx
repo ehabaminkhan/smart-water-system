@@ -342,9 +342,17 @@ export default function Customer() {
         </div>
 
         {/* Footer */}
-        <p style={{ textAlign: "center", fontSize: "11px", color: "#475569", marginBottom: "20px" }}>
-          Smart water distribution & billing system
-        </p>
+        <div style={{ textAlign: "center", marginBottom: "20px" }}>
+  <p style={{ fontSize: "11px", color: "#475569", margin: "0 0 6px 0" }}>
+    Smart water distribution & billing system
+  </p>
+  <p style={{ fontSize: "11px", color: "#475569", margin: 0 }}>
+    Final year project by
+  </p>
+  <p style={{ fontSize: "12px", color: "#64748b", margin: "4px 0 0 0", fontWeight: "500" }}>
+    Ehab Amin Khan Yousafzai &nbsp;·&nbsp; Huraiz Hayat &nbsp;·&nbsp; Umer Rashid Kiyani
+  </p>
+</div>
 
       </div>
     </div>
