@@ -4,41 +4,31 @@ import axios from "axios"
 const API = "https://smart-water-system-production.up.railway.app"
 
 export default function App() {
-  const [latest, setLatest]     = useState(null)
-  const [billing, setBilling]   = useState(null)
-  const [valve, setValve]       = useState("open")
+  const [latest, setLatest]           = useState(null)
+  const [billing, setBilling]         = useState(null)
+  const [valve, setValve]             = useState("open")
   const [flowHistory, setFlowHistory] = useState([])
-  const [leakage, setLeakage]   = useState(false)
+  const [leakage, setLeakage]         = useState(false)
+  const [time, setTime]               = useState(new Date())
 
-  // Fetch latest sensor data every second
+  useEffect(() => {
+    const clock = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(clock)
+  }, [])
+
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const res = await axios.get(`${API}/api/sensor-data/latest`)
+        const res  = await axios.get(`${API}/api/sensor-data/latest`)
         const data = res.data
         setLatest(data)
-
-        // Keep last 6 readings for the bar chart
-        setFlowHistory(prev => {
-          const updated = [...prev, data.flow_litres].slice(-6)
-          return updated
-        })
-
-        // Leakage: if valve closed and pressure drops below 50 kPa
-        if (data.valve_open === 0 && data.pressure_kpa < 50) {
-          setLeakage(true)
-        } else {
-          setLeakage(false)
-        }
-
-      } catch (err) {
-        console.log("Waiting for Pi data...")
-      }
+        setFlowHistory(prev => [...prev, data.flow_litres].slice(-8))
+        setLeakage(data.valve_open === 0 && data.pressure_kpa < 50)
+      } catch (err) {}
     }, 1000)
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch billing every 5 seconds
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -49,7 +39,6 @@ export default function App() {
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch valve status every second
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -60,7 +49,6 @@ export default function App() {
     return () => clearInterval(interval)
   }, [])
 
-  // Send valve command
   const sendValveCommand = async (command) => {
     try {
       await axios.post(`${API}/api/valve`, { command })
@@ -70,13 +58,12 @@ export default function App() {
     }
   }
 
-  // Calculate bill on demand
   const calculateBill = async () => {
     if (!latest) return
     try {
       const res = await axios.post(`${API}/api/billing/calculate`, {
         total_litres   : latest.total_litres,
-        price_per_litre: 0.05
+        price_per_litre: 50
       })
       setBilling(res.data)
     } catch (err) {
@@ -87,135 +74,295 @@ export default function App() {
   const maxFlow = Math.max(...flowHistory, 0.01)
 
   return (
-    <div style={{ padding: "1.5rem", background: "#f5f5f3", minHeight: "100vh", fontFamily: "sans-serif" }}>
+    <div style={{
+      minHeight  : "100vh",
+      width      : "100%",
+      background : "#0f172a",
+      color      : "#e2e8f0",
+      fontFamily : "system-ui, sans-serif",
+      boxSizing  : "border-box",
+      padding    : "0",
+      margin     : "0"
+    }}>
 
-      {/* Top bar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-        <div>
-          <h1 style={{ fontSize: "20px", fontWeight: "500", margin: 0 }}>Smart water system</h1>
-          <p style={{ fontSize: "12px", color: "#888", margin: 0 }}>Live dashboard — provider view</p>
+      {/* Top navbar */}
+      <div style={{
+        background   : "#1e293b",
+        borderBottom : "1px solid #334155",
+        padding      : "12px 24px",
+        display      : "flex",
+        justifyContent: "space-between",
+        alignItems   : "center"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{
+            width: "36px", height: "36px", borderRadius: "8px",
+            background: "#0ea5e9", display: "flex", alignItems: "center",
+            justifyContent: "center", fontSize: "18px"
+          }}>💧</div>
+          <div>
+            <p style={{ margin: 0, fontWeight: "600", fontSize: "15px", color: "#f1f5f9" }}>Smart water system</p>
+            <p style={{ margin: 0, fontSize: "11px", color: "#64748b" }}>Distribution & automated billing</p>
+          </div>
         </div>
-        <span style={{
-          fontSize: "12px", padding: "4px 12px", borderRadius: "20px", fontWeight: "500",
-          background: latest ? "#EAF3DE" : "#F1EFE8",
-          color   : latest ? "#27500A" : "#5F5E5A"
-        }}>
-          {latest ? "Pi connected" : "Waiting for Pi..."}
-        </span>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8" }}>
+              {time.toLocaleDateString('en-PK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+            <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>
+              {time.toLocaleTimeString('en-PK')}
+            </p>
+          </div>
+          <div style={{
+            padding    : "6px 14px",
+            borderRadius: "20px",
+            fontSize   : "12px",
+            fontWeight : "500",
+            background : latest ? "#064e3b" : "#1e293b",
+            color      : latest ? "#34d399" : "#64748b",
+            border     : latest ? "1px solid #065f46" : "1px solid #334155"
+          }}>
+            {latest ? "● Pi connected" : "○ Waiting for Pi"}
+          </div>
+        </div>
       </div>
 
-      {/* Metric cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: "10px", marginBottom: "1rem" }}>
-        <MetricCard label="Flow this second"    value={latest ? latest.flow_litres.toFixed(4) : "—"}  unit="litres / sec" />
-        <MetricCard label="Total flowed today"  value={latest ? latest.total_litres.toFixed(2) : "—"} unit="litres" />
-        <MetricCard label="Pressure"            value={latest ? latest.pressure_kpa.toFixed(0) : "—"} unit="kPa" />
-        <MetricCard
-          label="Leakage alert"
-          value={leakage ? "LEAK!" : "No leak"}
-          unit={valve === "close" ? "valve is closed" : "valve is open"}
-          alert={leakage}
-        />
+      {/* Team banner */}
+      <div style={{
+        background: "#1e293b",
+        borderBottom: "1px solid #334155",
+        padding: "8px 24px",
+        display: "flex",
+        alignItems: "center",
+        gap: "8px"
+      }}>
+        <span style={{ fontSize: "11px", color: "#64748b" }}>Final year project by</span>
+        {["Ehab Amin Khan Yousafzai", "Huraiz Hayat", "Umer Rashid Kiyani"].map((name, i) => (
+          <span key={i} style={{
+            fontSize: "11px", fontWeight: "500", color: "#94a3b8",
+            padding: "2px 10px", background: "#0f172a",
+            borderRadius: "20px", border: "1px solid #334155"
+          }}>{name}</span>
+        ))}
       </div>
 
-      {/* Bottom row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+      {/* Main content */}
+      <div style={{ padding: "20px 24px" }}>
 
-        {/* Flow chart */}
-        <div style={{ background: "#fff", border: "0.5px solid #e0e0de", borderRadius: "8px", padding: "14px" }}>
-          <p style={{ fontSize: "13px", fontWeight: "500", marginBottom: "12px" }}>Flow last 6 readings (L)</p>
-          {flowHistory.length === 0 && (
-            <p style={{ fontSize: "12px", color: "#888" }}>Waiting for data from Pi...</p>
-          )}
-          {flowHistory.map((val, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-              <span style={{ fontSize: "11px", color: "#888", width: "20px" }}>{flowHistory.length - i}s</span>
-              <div style={{ flex: 1, height: "6px", background: "#f0f0ee", borderRadius: "3px", overflow: "hidden" }}>
-                <div style={{ width: `${(val / maxFlow) * 100}%`, height: "100%", background: "#378ADD", borderRadius: "3px" }} />
-              </div>
-              <span style={{ fontSize: "11px", color: "#888", width: "50px", textAlign: "right" }}>{val.toFixed(4)} L</span>
+        {/* Metric cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: "14px", marginBottom: "20px" }}>
+
+          <StatCard
+            label="Flow this second"
+            value={latest ? latest.flow_litres.toFixed(4) : "—"}
+            unit="L / sec"
+            color="#0ea5e9"
+            icon="🌊"
+          />
+          <StatCard
+            label="Total flowed today"
+            value={latest ? latest.total_litres.toFixed(3) : "—"}
+            unit="litres"
+            color="#8b5cf6"
+            icon="📊"
+          />
+          <StatCard
+            label="Pipe pressure"
+            value={latest ? latest.pressure_kpa.toFixed(0) : "—"}
+            unit="kPa"
+            color="#f59e0b"
+            icon="🔧"
+          />
+          <StatCard
+            label="Leakage status"
+            value={leakage ? "LEAK!" : "No leak"}
+            unit={valve === "close" ? "valve closed" : "valve open"}
+            color={leakage ? "#ef4444" : "#10b981"}
+            icon={leakage ? "⚠️" : "✅"}
+            alert={leakage}
+          />
+        </div>
+
+        {/* Bottom grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "14px" }}>
+
+          {/* Flow chart */}
+          <div style={{
+            background  : "#1e293b",
+            borderRadius: "12px",
+            border      : "1px solid #334155",
+            padding     : "20px"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#f1f5f9" }}>Flow rate history</p>
+              <span style={{ fontSize: "11px", color: "#64748b" }}>Last 8 readings</span>
             </div>
-          ))}
-        </div>
 
-        {/* Valve + Billing */}
-        <div style={{ background: "#fff", border: "0.5px solid #e0e0de", borderRadius: "8px", padding: "14px" }}>
+            {flowHistory.length === 0 ? (
+              <p style={{ fontSize: "13px", color: "#64748b", textAlign: "center", padding: "20px 0" }}>Waiting for Pi data...</p>
+            ) : (
+              flowHistory.map((val, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+                  <span style={{ fontSize: "11px", color: "#64748b", width: "24px", textAlign: "right" }}>{flowHistory.length - i}s</span>
+                  <div style={{ flex: 1, height: "10px", background: "#0f172a", borderRadius: "5px", overflow: "hidden" }}>
+                    <div style={{
+                      width     : `${Math.max((val / maxFlow) * 100, val > 0 ? 2 : 0)}%`,
+                      height    : "100%",
+                      background: `linear-gradient(90deg, #0ea5e9, #38bdf8)`,
+                      borderRadius: "5px",
+                      transition: "width 0.3s ease"
+                    }} />
+                  </div>
+                  <span style={{ fontSize: "11px", color: "#94a3b8", width: "70px", textAlign: "right" }}>{val.toFixed(4)} L</span>
+                </div>
+              ))
+            )}
 
-          {/* Valve control */}
-          <p style={{ fontSize: "13px", fontWeight: "500", marginBottom: "10px" }}>Valve control</p>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <span style={{ fontSize: "13px" }}>Current status</span>
-            <span style={{
-              fontSize: "11px", padding: "3px 10px", borderRadius: "20px", fontWeight: "500",
-              background: valve === "open" ? "#EAF3DE" : "#FCEBEB",
-              color     : valve === "open" ? "#27500A"  : "#791F1F"
+            {/* Total summary */}
+            <div style={{
+              marginTop  : "16px",
+              padding    : "12px",
+              background : "#0f172a",
+              borderRadius: "8px",
+              display    : "flex",
+              justifyContent: "space-between"
             }}>
-              {valve === "open" ? "Open" : "Closed"}
-            </span>
+              <div style={{ textAlign: "center" }}>
+                <p style={{ margin: 0, fontSize: "11px", color: "#64748b" }}>Total flowed</p>
+                <p style={{ margin: "4px 0 0 0", fontSize: "18px", fontWeight: "600", color: "#0ea5e9" }}>
+                  {latest ? latest.total_litres.toFixed(3) : "0.000"} L
+                </p>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <p style={{ margin: 0, fontSize: "11px", color: "#64748b" }}>Current pressure</p>
+                <p style={{ margin: "4px 0 0 0", fontSize: "18px", fontWeight: "600", color: "#f59e0b" }}>
+                  {latest ? latest.pressure_kpa.toFixed(0) : "0"} kPa
+                </p>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <p style={{ margin: 0, fontSize: "11px", color: "#64748b" }}>Bill so far</p>
+                <p style={{ margin: "4px 0 0 0", fontSize: "18px", fontWeight: "600", color: "#8b5cf6" }}>
+                  Rs. {latest ? (latest.total_litres * 50).toFixed(2) : "0.00"}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <button
-            onClick={() => sendValveCommand("close")}
-            style={{ width: "100%", padding: "8px", marginBottom: "6px", border: "0.5px solid #E24B4A", borderRadius: "8px", background: "transparent", color: "#A32D2D", fontSize: "13px", cursor: "pointer" }}
-          >
-            Close valve
-          </button>
-          <button
-            onClick={() => sendValveCommand("open")}
-            style={{ width: "100%", padding: "8px", marginBottom: "14px", border: "0.5px solid #ccc", borderRadius: "8px", background: "transparent", fontSize: "13px", cursor: "pointer" }}
-          >
-            Open valve
-          </button>
+          {/* Right panel — valve + billing */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
 
-          {/* Billing */}
-          <div style={{ borderTop: "0.5px solid #e0e0de", paddingTop: "10px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-              <p style={{ fontSize: "13px", fontWeight: "500", margin: 0 }}>Current bill</p>
-              <button
-                onClick={calculateBill}
-                style={{ fontSize: "11px", padding: "3px 10px", border: "0.5px solid #ccc", borderRadius: "20px", background: "transparent", cursor: "pointer" }}
-              >
-                Calculate
-              </button>
+            {/* Valve control */}
+            <div style={{
+              background  : "#1e293b",
+              borderRadius: "12px",
+              border      : "1px solid #334155",
+              padding     : "20px"
+            }}>
+              <p style={{ margin: "0 0 14px 0", fontSize: "14px", fontWeight: "600", color: "#f1f5f9" }}>Valve control</p>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                <span style={{ fontSize: "13px", color: "#94a3b8" }}>Current status</span>
+                <span style={{
+                  fontSize: "12px", padding: "4px 14px", borderRadius: "20px", fontWeight: "600",
+                  background: valve === "open" ? "#064e3b" : "#450a0a",
+                  color     : valve === "open" ? "#34d399" : "#fca5a5",
+                  border    : valve === "open" ? "1px solid #065f46" : "1px solid #7f1d1d"
+                }}>
+                  {valve === "open" ? "● Open" : "● Closed"}
+                </span>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                <button onClick={() => sendValveCommand("open")}
+                  style={{
+                    padding: "10px", border: "1px solid #065f46",
+                    borderRadius: "8px", background: valve === "open" ? "#064e3b" : "transparent",
+                    color: "#34d399", fontSize: "13px", cursor: "pointer", fontWeight: "500"
+                  }}>
+                  Open valve
+                </button>
+                <button onClick={() => sendValveCommand("close")}
+                  style={{
+                    padding: "10px", border: "1px solid #7f1d1d",
+                    borderRadius: "8px", background: valve === "close" ? "#450a0a" : "transparent",
+                    color: "#fca5a5", fontSize: "13px", cursor: "pointer", fontWeight: "500"
+                  }}>
+                  Close valve
+                </button>
+              </div>
             </div>
-            <BillRow label="Total litres"  value={billing ? `${billing.total_litres.toFixed(2)} L` : (latest ? `${latest.total_litres.toFixed(2)} L` : "—")} />
-            <BillRow label="Price / litre" value="Rs. 0.05" />
-            <BillRow label="Total bill"    value={billing ? `Rs. ${billing.total_bill.toFixed(2)}` : "—"} bold />
+
+            {/* Billing */}
+            <div style={{
+              background  : "#1e293b",
+              borderRadius: "12px",
+              border      : "1px solid #334155",
+              padding     : "20px",
+              flex        : 1
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#f1f5f9" }}>Billing</p>
+                <button onClick={calculateBill}
+                  style={{
+                    fontSize: "12px", padding: "5px 14px",
+                    border: "1px solid #0ea5e9", borderRadius: "20px",
+                    background: "transparent", color: "#0ea5e9",
+                    cursor: "pointer", fontWeight: "500"
+                  }}>
+                  Calculate
+                </button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <BillRow label="Total litres used"
+                  value={billing ? `${billing.total_litres.toFixed(3)} L` : (latest ? `${latest.total_litres.toFixed(3)} L` : "—")} />
+                <BillRow label="Price per litre" value="Rs. 50.00" />
+                <BillRow label="Estimated bill"
+                  value={`Rs. ${latest ? (latest.total_litres * 50).toFixed(2) : "0.00"}`} />
+                <div style={{ borderTop: "1px solid #334155", paddingTop: "10px", marginTop: "4px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "14px", fontWeight: "600", color: "#f1f5f9" }}>Total bill</span>
+                    <span style={{ fontSize: "20px", fontWeight: "700", color: "#8b5cf6" }}>
+                      Rs. {billing ? billing.total_bill.toFixed(2) : (latest ? (latest.total_litres * 50).toFixed(2) : "0.00")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
-
       </div>
     </div>
   )
 }
 
-function MetricCard({ label, value, unit, alert }) {
+function StatCard({ label, value, unit, color, icon, alert }) {
   return (
     <div style={{
-      background: "#fff",
-      border    : alert ? "0.5px solid #E24B4A" : "0.5px solid #e0e0de",
-      borderLeft: alert ? "3px solid #E24B4A"   : "0.5px solid #e0e0de",
-      borderRadius: "8px",
-      padding   : "12px 14px"
+      background  : "#1e293b",
+      borderRadius: "12px",
+      border      : `1px solid ${alert ? "#7f1d1d" : "#334155"}`,
+      padding     : "18px",
+      borderTop   : `3px solid ${color}`
     }}>
-      <p style={{ fontSize: "11px", color: "#888", marginBottom: "4px" }}>{label}</p>
-      <p style={{ fontSize: "22px", fontWeight: "500", color: alert ? "#A32D2D" : "inherit", margin: 0 }}>{value}</p>
-      <p style={{ fontSize: "11px", color: "#888", marginTop: "2px" }}>{unit}</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+        <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>{label}</p>
+        <span style={{ fontSize: "18px" }}>{icon}</span>
+      </div>
+      <p style={{ margin: 0, fontSize: "28px", fontWeight: "700", color: alert ? "#ef4444" : color }}>{value}</p>
+      <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#64748b" }}>{unit}</p>
     </div>
   )
 }
 
-function BillRow({ label, value, bold }) {
+function BillRow({ label, value }) {
   return (
-    <div style={{
-      display: "flex", justifyContent: "space-between",
-      fontSize: bold ? "13px" : "12px",
-      fontWeight: bold ? "500" : "400",
-      padding: "5px 0",
-      borderBottom: "0.5px solid #f0f0ee",
-      color: bold ? "inherit" : "#888"
-    }}>
-      <span>{label}</span>
-      <span>{value}</span>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <span style={{ fontSize: "12px", color: "#64748b" }}>{label}</span>
+      <span style={{ fontSize: "13px", color: "#94a3b8", fontWeight: "500" }}>{value}</span>
     </div>
   )
 }
