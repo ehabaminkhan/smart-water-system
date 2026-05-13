@@ -3,10 +3,18 @@ const router  = express.Router();
 const db      = require('../database');
 
 router.post('/', (req, res) => {
-    const { flow_litres, total_litres, pressure_kpa, valve_open } = req.body;
+    const { flow_litres, total_litres, pressure_kpa, valve_open, leakage, main_flow } = req.body;
     db.run(
-        `INSERT INTO sensor_readings (flow_litres, total_litres, pressure_kpa, valve_open) VALUES (?, ?, ?, ?)`,
-        [flow_litres || 0.0, total_litres || 0.0, pressure_kpa || 0.0, valve_open ? 1 : 0],
+        `INSERT INTO sensor_readings (flow_litres, total_litres, pressure_kpa, valve_open, leakage, main_flow)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+            flow_litres  || 0.0,
+            total_litres || 0.0,
+            pressure_kpa || 0.0,
+            valve_open   ? 1 : 0,
+            leakage      ? 1 : 0,
+            main_flow    || 0.0
+        ],
         (err) => {
             if (err) return res.status(500).json({ error: err.message });
             res.json({ status: 'ok', message: 'Data saved' });
