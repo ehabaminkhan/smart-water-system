@@ -101,8 +101,12 @@ export default function App() {
             justifyContent: "center", fontSize: "18px"
           }}>💧</div>
           <div>
-            <p style={{ margin: 0, fontWeight: "600", fontSize: "15px", color: "#f1f5f9" }}>Smart water system</p>
-            <p style={{ margin: 0, fontSize: "11px", color: "#64748b" }}>Distribution & automated billing</p>
+            <p style={{ margin: 0, fontWeight: "600", fontSize: "15px", color: "#f1f5f9" }}>
+              Smart water system
+            </p>
+            <p style={{ margin: 0, fontSize: "11px", color: "#64748b" }}>
+              Distribution & automated billing
+            </p>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
@@ -110,13 +114,16 @@ export default function App() {
             <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8" }}>
               {time.toLocaleDateString('en-PK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
-            <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>{time.toLocaleTimeString('en-PK')}</p>
+            <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>
+              {time.toLocaleTimeString('en-PK')}
+            </p>
           </div>
           <div style={{
-            padding     : "6px 14px", borderRadius: "20px", fontSize: "12px", fontWeight: "500",
-            background  : latest ? "#064e3b" : "#1e293b",
-            color       : latest ? "#34d399" : "#64748b",
-            border      : latest ? "1px solid #065f46" : "1px solid #334155"
+            padding    : "6px 14px", borderRadius: "20px",
+            fontSize   : "12px", fontWeight: "500",
+            background : latest ? "#064e3b" : "#1e293b",
+            color      : latest ? "#34d399" : "#64748b",
+            border     : latest ? "1px solid #065f46" : "1px solid #334155"
           }}>
             {latest ? "● Pi connected" : "○ Waiting for Pi"}
           </div>
@@ -141,12 +148,8 @@ export default function App() {
       {/* Leakage Alert Banner */}
       {leakage && (
         <div style={{
-          background  : "#450a0a",
-          border      : "1px solid #7f1d1d",
-          padding     : "14px 24px",
-          display     : "flex",
-          alignItems  : "center",
-          gap         : "12px"
+          background: "#450a0a", border: "1px solid #7f1d1d",
+          padding: "14px 24px", display: "flex", alignItems: "center", gap: "12px"
         }}>
           <span style={{ fontSize: "24px" }}>🚨</span>
           <div>
@@ -164,8 +167,13 @@ export default function App() {
       {/* Main content */}
       <div style={{ padding: "20px 24px" }}>
 
-        {/* Metric cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: "14px", marginBottom: "20px" }}>
+        {/* Metric cards — 5 cards */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(5, minmax(0,1fr))",
+          gap: "14px",
+          marginBottom: "20px"
+        }}>
           <StatCard
             label="Customer flow"
             value={latest ? latest.flow_litres.toFixed(4) : "—"}
@@ -183,9 +191,16 @@ export default function App() {
           <StatCard
             label="Main inlet flow"
             value={mainFlow.toFixed(4)}
-            unit={valve === "close" ? "L/sec (valve closed)" : "L/sec (valve open)"}
+            unit={valve === "close" && mainFlow > 0.001 ? "⚠️ flowing while closed!" : "L / sec"}
             color={valve === "close" && mainFlow > 0.001 ? "#ef4444" : "#f59e0b"}
             icon="🔧"
+          />
+          <StatCard
+            label="Pipe pressure"
+            value={latest ? latest.pressure_kpa.toFixed(2) : "—"}
+            unit="voltage (V)"
+            color="#06b6d4"
+            icon="🔩"
           />
           <StatCard
             label="Leakage status"
@@ -205,8 +220,13 @@ export default function App() {
             background: "#1e293b", borderRadius: "12px",
             border: "1px solid #334155", padding: "20px"
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#f1f5f9" }}>Customer flow history</p>
+            <div style={{
+              display: "flex", justifyContent: "space-between",
+              alignItems: "center", marginBottom: "16px"
+            }}>
+              <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#f1f5f9" }}>
+                Customer flow history
+              </p>
               <span style={{ fontSize: "11px", color: "#64748b" }}>Last 8 readings</span>
             </div>
 
@@ -224,7 +244,7 @@ export default function App() {
                     <div style={{
                       width      : `${Math.max((val / maxFlow) * 100, val > 0 ? 2 : 0)}%`,
                       height     : "100%",
-                      background : `linear-gradient(90deg, #0ea5e9, #38bdf8)`,
+                      background : "linear-gradient(90deg, #0ea5e9, #38bdf8)",
                       borderRadius: "5px",
                       transition : "width 0.3s ease"
                     }} />
@@ -236,7 +256,7 @@ export default function App() {
               ))
             )}
 
-            {/* Summary */}
+            {/* Summary row */}
             <div style={{
               marginTop: "16px", padding: "12px", background: "#0f172a",
               borderRadius: "8px", display: "flex", justifyContent: "space-between"
@@ -248,10 +268,9 @@ export default function App() {
                 </p>
               </div>
               <div style={{ textAlign: "center" }}>
-                <p style={{ margin: 0, fontSize: "11px", color: "#64748b" }}>Main inlet</p>
-                <p style={{ margin: "4px 0 0 0", fontSize: "18px", fontWeight: "600",
-                  color: valve === "close" && mainFlow > 0.001 ? "#ef4444" : "#f59e0b" }}>
-                  {mainFlow.toFixed(4)} L/s
+                <p style={{ margin: 0, fontSize: "11px", color: "#64748b" }}>Pressure</p>
+                <p style={{ margin: "4px 0 0 0", fontSize: "18px", fontWeight: "600", color: "#06b6d4" }}>
+                  {latest ? latest.pressure_kpa.toFixed(2) : "0.00"} V
                 </p>
               </div>
               <div style={{ textAlign: "center" }}>
@@ -274,7 +293,10 @@ export default function App() {
               <p style={{ margin: "0 0 14px 0", fontSize: "14px", fontWeight: "600", color: "#f1f5f9" }}>
                 Valve control
               </p>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+              <div style={{
+                display: "flex", justifyContent: "space-between",
+                alignItems: "center", marginBottom: "14px"
+              }}>
                 <span style={{ fontSize: "13px", color: "#94a3b8" }}>Current status</span>
                 <span style={{
                   fontSize: "12px", padding: "4px 14px", borderRadius: "20px", fontWeight: "600",
@@ -293,7 +315,7 @@ export default function App() {
                 }}>
                   {leakage
                     ? "⚠️ Leakage detected on main inlet!"
-                    : "⏳ Monitoring for leakage — check completes 1 min after close"
+                    : "⏳ Monitoring — leak check after 1 min"
                   }
                 </div>
               )}
@@ -321,11 +343,15 @@ export default function App() {
               background: "#1e293b", borderRadius: "12px",
               border: "1px solid #334155", padding: "20px", flex: 1
             }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+              <div style={{
+                display: "flex", justifyContent: "space-between",
+                alignItems: "center", marginBottom: "14px"
+              }}>
                 <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#f1f5f9" }}>Billing</p>
                 <button onClick={calculateBill} style={{
-                  fontSize: "12px", padding: "5px 14px", border: "1px solid #0ea5e9",
-                  borderRadius: "20px", background: "transparent", color: "#0ea5e9",
+                  fontSize: "12px", padding: "5px 14px",
+                  border: "1px solid #0ea5e9", borderRadius: "20px",
+                  background: "transparent", color: "#0ea5e9",
                   cursor: "pointer", fontWeight: "500"
                 }}>
                   Calculate
@@ -333,16 +359,24 @@ export default function App() {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <BillRow label="Total litres used"
-                  value={billing ? `${billing.total_litres.toFixed(3)} L` : (latest ? `${latest.total_litres.toFixed(3)} L` : "—")} />
+                <BillRow
+                  label="Total litres used"
+                  value={billing
+                    ? `${billing.total_litres.toFixed(3)} L`
+                    : (latest ? `${latest.total_litres.toFixed(3)} L` : "—")}
+                />
                 <BillRow label="Price per litre" value="Rs. 50.00" />
-                <BillRow label="Estimated bill"
-                  value={`Rs. ${latest ? (latest.total_litres * 50).toFixed(2) : "0.00"}`} />
+                <BillRow
+                  label="Estimated bill"
+                  value={`Rs. ${latest ? (latest.total_litres * 50).toFixed(2) : "0.00"}`}
+                />
                 <div style={{ borderTop: "1px solid #334155", paddingTop: "10px", marginTop: "4px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: "14px", fontWeight: "600", color: "#f1f5f9" }}>Total bill</span>
                     <span style={{ fontSize: "20px", fontWeight: "700", color: "#8b5cf6" }}>
-                      Rs. {billing ? billing.total_bill.toFixed(2) : (latest ? (latest.total_litres * 50).toFixed(2) : "0.00")}
+                      Rs. {billing
+                        ? billing.total_bill.toFixed(2)
+                        : (latest ? (latest.total_litres * 50).toFixed(2) : "0.00")}
                     </span>
                   </div>
                 </div>
@@ -365,11 +399,16 @@ function StatCard({ label, value, unit, color, icon, alert }) {
       padding     : "18px",
       borderTop   : `3px solid ${color}`
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+      <div style={{
+        display: "flex", justifyContent: "space-between",
+        alignItems: "flex-start", marginBottom: "10px"
+      }}>
         <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>{label}</p>
         <span style={{ fontSize: "18px" }}>{icon}</span>
       </div>
-      <p style={{ margin: 0, fontSize: "28px", fontWeight: "700", color: alert ? "#ef4444" : color }}>{value}</p>
+      <p style={{ margin: 0, fontSize: "28px", fontWeight: "700", color: alert ? "#ef4444" : color }}>
+        {value}
+      </p>
       <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#64748b" }}>{unit}</p>
     </div>
   )
