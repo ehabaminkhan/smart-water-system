@@ -36,17 +36,24 @@ db.serialize(() => {
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS houses (
-        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        id        INTEGER PRIMARY KEY,
         meter_id  TEXT    UNIQUE,
         name      TEXT,
         address   TEXT
     )`);
 
-    // Insert default houses
-    db.run(`INSERT OR IGNORE INTO houses (id, meter_id, name, address)
-            VALUES (1, 'MTR-001', 'House 1', 'Address 1')`);
-    db.run(`INSERT OR IGNORE INTO houses (id, meter_id, name, address)
-            VALUES (2, 'MTR-002', 'House 2', 'Address 2')`);
+    // Insert houses with error logging
+    db.run(
+        `INSERT OR IGNORE INTO houses (id, meter_id, name, address)
+         VALUES (1, 'MTR-001', 'House 1', 'Address 1')`,
+        (err) => { if (err) console.log('House 1 insert error:', err.message); }
+    );
+
+    db.run(
+        `INSERT OR IGNORE INTO houses (id, meter_id, name, address)
+         VALUES (2, 'MTR-002', 'House 2', 'Address 2')`,
+        (err) => { if (err) console.log('House 2 insert error:', err.message); }
+    );
 
 });
 
